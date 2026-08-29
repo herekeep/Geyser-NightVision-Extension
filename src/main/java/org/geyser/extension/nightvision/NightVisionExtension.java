@@ -45,7 +45,7 @@ public class NightVisionExtension implements Extension {
             props.load(input);
             return Boolean.parseBoolean(props.getProperty("enabled", "true"));
         } catch (IOException e) {
-            this.logger().warn("读取配置失败，使用默认启用状态");
+            this.logger().error("读取配置失败，使用默认启用状态");
             return true;
         }
     }
@@ -59,7 +59,7 @@ public class NightVisionExtension implements Extension {
                 props.store(output, "NightVision Extension - 设置为 false 以禁用夜视效果");
             }
         } catch (IOException e) {
-            this.logger().warn("无法保存默认配置文件: " + e.getMessage());
+            this.logger().error("无法保存默认配置文件: " + e.getMessage());
         }
     }
 }
