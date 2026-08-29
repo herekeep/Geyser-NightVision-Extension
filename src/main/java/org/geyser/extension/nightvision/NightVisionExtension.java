@@ -1,6 +1,7 @@
 package org.geyser.extension.nightvision;
 
 import org.geysermc.event.subscribe.Subscribe;
+import org.geysermc.geyser.api.Geyser;
 import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.event.bedrock.SessionJoinEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
@@ -30,9 +31,8 @@ public class NightVisionExtension implements Extension {
 
         GeyserConnection connection = event.connection();
 
-        // 使用 Geyser 的 EventLoop 调度延迟任务
-        connection.getGeyser().getEventLoop().schedule(() -> {
-            // 注意：这里不检查连接是否存活，因为 getEventLoop 可能不可用
+        // 使用 Geyser 全局事件循环调度延迟任务
+        Geyser.api().eventLoop().schedule(() -> {
             String command = "effect give " + connection.bedrockUsername() + " night_vision infinite 0 true";
             connection.sendCommand(command);
             this.logger().info("已延迟 " + delaySeconds + " 秒为玩家 " + connection.bedrockUsername() + " 应用夜视效果");
@@ -56,7 +56,7 @@ public class NightVisionExtension implements Extension {
                 delaySeconds = 120;
             }
         } catch (IOException e) {
-            this.logger().error("读取配置失败，使用默认值");
+            this.logger().error("读取配置失败，使用默认值"); // 改为 error
         }
     }
 
@@ -70,7 +70,7 @@ public class NightVisionExtension implements Extension {
                 props.store(output, "NightVision Extension Configuration\nenabled: true/false 是否启用\ndelay: 延迟秒数（例如 120）");
             }
         } catch (IOException e) {
-            this.logger().error("无法保存默认配置文件: " + e.getMessage());
+            this.logger().error("无法保存默认配置文件: " + e.getMessage()); // 改为 error
         }
     }
 }
