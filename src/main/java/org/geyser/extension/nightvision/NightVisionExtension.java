@@ -1,25 +1,29 @@
 package org.geyser.extension.nightvision;
 
 import org.geysermc.event.subscribe.Subscribe;
-import org.geysermc.geyser.api.Geyser;
 import org.geysermc.geyser.api.connection.GeyserConnection;
 import org.geysermc.geyser.api.event.bedrock.SessionJoinEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
+import org.geysermc.geyser.api.event.lifecycle.GeyserShutdownEvent;
 import org.geysermc.geyser.api.extension.Extension;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class NightVisionExtension implements Extension {
 
     private boolean enabled = true;
     private int delaySeconds = 120;
+    private ScheduledExecutorService scheduler;
 
     @Subscribe
     public void onGeyserPostInitialize(GeyserPostInitializeEvent event) {
+        scheduler = Executors.newSingleThreadScheduledExecutor();
         Path configPath = dataFolder().resolve("config.properties");
         loadConfig(configPath.toFile());
         this.logger().info("NightVisionExtension 已加载！启用状态: " + enabled + "，延迟时间: " + delaySeconds + " 秒");
@@ -31,12 +35,19 @@ public class NightVisionExtension implements Extension {
 
         GeyserConnection connection = event.connection();
 
-        // 使用 Geyser 全局事件循环调度延迟任务
-        Geyser.api().eventLoop().schedule(() -> {
+        // 使用独立的调度器延迟执行命令
+        scheduler.schedule(() -> {
             String command = "effect give " + connection.bedrockUsername() + " night_vision infinite 0 true";
             connection.sendCommand(command);
             this.logger().info("已延迟 " + delaySeconds + " 秒为玩家 " + connection.bedrockUsername() + " 应用夜视效果");
         }, delaySeconds, TimeUnit.SECONDS);
+    }
+
+    @Subscribe
+    public void onGeyserShutdown(GeyserShutdownEvent event) {
+        if (scheduler != null) {
+            scheduler.shutdownNow();
+        }
     }
 
     private void loadConfig(File configFile) {
@@ -56,7 +67,7 @@ public class NightVisionExtension implements Extension {
                 delaySeconds = 120;
             }
         } catch (IOException e) {
-            this.logger().error("读取配置失败，使用默认值"); // 改为 error
+            this.logger().error("读取配置失败，使用默认值");
         }
     }
 
@@ -70,7 +81,7 @@ public class NightVisionExtension implements Extension {
                 props.store(output, "NightVision Extension Configuration\nenabled: true/false 是否启用\ndelay: 延迟秒数（例如 120）");
             }
         } catch (IOException e) {
-            this.logger().error("无法保存默认配置文件: " + e.getMessage()); // 改为 error
+            this.logger().error("无法保存默认配置文件: " + e.getMessage());
         }
     }
 }
